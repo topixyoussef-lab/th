@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     
     <style>
@@ -44,6 +43,7 @@
         .glass-panel { background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .loading-spinner { border: 2px solid rgba(0, 255, 65, 0.1); border-left-color: var(--neon-green); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .video-iframe { width: 100%; height: 100%; border: none; border-radius: 12px; background: #000; }
     </style>
 </head>
 <body class="min-h-screen relative selection:bg-green-900 selection:text-white">
@@ -152,30 +152,35 @@
                 </div>
             </div>
 
+            <!-- Video Panel with Jitsi -->
             <div id="videoPanel" class="hidden-panel h-full flex flex-col">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 h-64 md:h-96">
-                    <div class="relative bg-black rounded-xl overflow-hidden border border-gray-800 shadow-lg">
-                        <video id="localVideo" autoplay muted playsinline class="w-full h-full object-cover transform scale-x-[-1]"></video>
-                        <div class="absolute bottom-2 left-2 bg-black/70 px-2 py-1 rounded text-[10px] mono text-green-400 border border-green-500/30">LOCAL FEED</div>
-                        <div class="absolute inset-0 flex items-center justify-center bg-black/80 z-10 hidden" id="localPlaceholder"><span class="mono text-xs text-gray-500">CAMERA OFFLINE</span></div>
-                    </div>
-                    <div class="relative bg-black rounded-xl overflow-hidden border border-gray-800 shadow-lg">
-                        <video id="remoteVideo" autoplay playsinline class="w-full h-full object-cover"></video>
-                        <div class="absolute bottom-2 left-2 bg-black/70 px-2 py-1 rounded text-[10px] mono text-blue-400 border border-blue-500/30" id="remoteLabel">REMOTE FEED</div>
-                        <div class="absolute inset-0 flex items-center justify-center bg-black/80 z-10" id="remotePlaceholder"><span class="mono text-xs text-gray-500">WAITING FOR PEER...</span></div>
+                <div class="flex-1 glass-panel rounded-xl overflow-hidden relative mb-4">
+                    <iframe id="jitsiFrame" class="video-iframe hidden"></iframe>
+                    <div id="videoPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80">
+                        <div class="text-center">
+                            <svg class="w-16 h-16 text-green-500 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            <h3 class="text-xl font-bold mb-2">SECURE VIDEO CHANNEL</h3>
+                            <p class="text-gray-400 text-sm mb-6 mono">END-TO-END ENCRYPTED VIDEO CONFERENCE</p>
+                            <div class="flex gap-4 justify-center">
+                                <button onclick="startJitsiCall()" class="btn-glow px-8 py-3 rounded-lg mono text-sm flex items-center gap-2">
+                                    <span>📹</span> START CALL
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                
                 <div class="glass-panel p-4 rounded-xl">
                     <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
                         <div class="flex gap-2 w-full md:w-auto">
-                            <button onclick="startVideoCall()" class="btn-glow px-4 py-2 rounded-lg mono text-xs flex-1 md:flex-none">INITIATE CALL</button>
-                            <button onclick="endCall()" class="border border-red-500/50 text-red-400 hover:bg-red-500/10 px-4 py-2 rounded-lg mono text-xs flex-1 md:flex-none">ABORT</button>
+                            <button onclick="endJitsiCall()" class="border border-red-500/50 text-red-400 hover:bg-red-500/10 px-6 py-2 rounded-lg mono text-xs">LEAVE CALL</button>
                         </div>
                         <div class="flex gap-2 w-full md:w-auto items-center">
                             <span class="text-[10px] text-gray-500 mono">ROOM ID:</span>
-                            <input type="text" id="roomIdDisplay" readonly class="bg-black/50 border border-gray-700 text-green-500 px-3 py-1 rounded text-xs mono flex-1 md:w-48 focus:outline-none" value="---">
-                            <button onclick="generateRoomId()" class="text-gray-400 hover:text-white text-xs mono border border-gray-700 px-2 py-1 rounded">GEN</button>
-                            <button onclick="copyRoomId()" class="text-gray-400 hover:text-white text-xs mono border border-gray-700 px-2 py-1 rounded">CPY</button>
+                            <input type="text" id="roomIdDisplay" readonly class="bg-black/50 border border-gray-700 text-green-500 px-3 py-2 rounded text-xs mono flex-1 md:w-48 focus:outline-none" value="---">
+                            <button onclick="generateRoomId()" class="btn-glow px-3 py-2 rounded mono text-xs">GEN</button>
+                            <button onclick="copyRoomId()" class="btn-glow px-3 py-2 rounded mono text-xs">CPY</button>
+                            <button onclick="joinJitsiCall()" class="btn-glow px-4 py-2 rounded mono text-xs">JOIN</button>
                         </div>
                     </div>
                 </div>
@@ -203,8 +208,7 @@
         let app, database;
         let currentUser = null;
         let privateChatWith = null;
-        let localStream = null;
-        let peerConnection = null;
+        let currentRoomId = null;
 
         window.onload = function() {
             initMatrix();
@@ -256,7 +260,6 @@
             document.getElementById('loginForm').classList.add('hidden');
             document.getElementById('loadingState').classList.remove('hidden');
 
-            // Generate unique ID without auth (for demo)
             currentUser = {
                 username: username,
                 id: 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
@@ -381,43 +384,50 @@
             input.value = '';
         }
 
-        async function startVideoCall() {
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                document.getElementById('localVideo').srcObject = localStream;
-                document.getElementById('localPlaceholder').classList.add('hidden');
-                showNotification("CAMERA INITIALIZED");
-                generateRoomId();
-                peerConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-                peerConnection.ontrack = (event) => {
-                    document.getElementById('remoteVideo').srcObject = event.streams[0];
-                    document.getElementById('remotePlaceholder').classList.add('hidden');
-                };
-            } catch (err) {
-                showNotification("CAMERA ACCESS DENIED", true);
-            }
+        // Jitsi Video Functions
+        function generateRoomId() {
+            currentRoomId = 'Shadow' + Math.random().toString(36).substring(2, 10).toUpperCase();
+            document.getElementById('roomIdDisplay').value = currentRoomId;
+            showNotification("ROOM ID GENERATED");
         }
 
-        function generateRoomId() {
-            document.getElementById('roomIdDisplay').value = Math.random().toString(36).substring(2, 8).toUpperCase();
+        function startJitsiCall() {
+            if (!currentRoomId) generateRoomId();
+            const username = currentUser ? currentUser.username : 'Agent';
+            const url = `https://meet.jit.si/${currentRoomId}#config.prejoinPageEnabled=false&userInfo.displayName="${encodeURIComponent(username)}"&config.startWithVideoMuted=false&config.startWithAudioMuted=false`;
+            
+            document.getElementById('jitsiFrame').src = url;
+            document.getElementById('jitsiFrame').classList.remove('hidden');
+            document.getElementById('videoPlaceholder').classList.add('hidden');
+            showNotification("VIDEO CHANNEL OPENED");
+        }
+
+        function joinJitsiCall() {
+            const roomId = document.getElementById('roomIdDisplay').value.trim();
+            if (!roomId || roomId === '---') {
+                showNotification("GENERATE ROOM ID FIRST", true);
+                return;
+            }
+            currentRoomId = roomId;
+            startJitsiCall();
+        }
+
+        function endJitsiCall() {
+            document.getElementById('jitsiFrame').src = '';
+            document.getElementById('jitsiFrame').classList.add('hidden');
+            document.getElementById('videoPlaceholder').classList.remove('hidden');
+            showNotification("TRANSMISSION TERMINATED");
         }
 
         function copyRoomId() {
             const copyText = document.getElementById("roomIdDisplay");
+            if (copyText.value === '---') {
+                showNotification("NO ROOM ID TO COPY", true);
+                return;
+            }
             copyText.select();
             navigator.clipboard.writeText(copyText.value);
-            showNotification("ROOM ID COPIED");
-        }
-
-        function endCall() {
-            if (localStream) { localStream.getTracks().forEach(track => track.stop()); localStream = null; }
-            if (peerConnection) { peerConnection.close(); peerConnection = null; }
-            document.getElementById('localVideo').srcObject = null;
-            document.getElementById('remoteVideo').srcObject = null;
-            document.getElementById('localPlaceholder').classList.remove('hidden');
-            document.getElementById('remotePlaceholder').classList.remove('hidden');
-            showNotification("TRANSMISSION TERMINATED");
+            showNotification("ROOM ID COPIED TO CLIPBOARD");
         }
 
         function showNotification(text, isError = false) {
@@ -436,4 +446,3 @@
     </script>
 </body>
 </html>
-
